@@ -18,9 +18,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout public repo
-        uses: actions/checkout@v3
-
       - name: Clone private repo manually
         env:
           PAT: ${{ secrets.PAT_READ_PRIVATE_REPO }}
