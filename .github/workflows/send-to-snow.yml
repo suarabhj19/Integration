@@ -32,10 +32,10 @@ jobs:
         env:
           ISSUE_DATA: ${{ inputs.issue_data }}
           JIRA_AUTH: ${{ secrets.JIRA_AUTH }}
-		  JIRA_URL: ${{ secrets.JIRA_URL }}
-		  SERVICENOW_INCIDENT_URL: ${{ secrets.SERVICENOW_INCIDENT_URL }}
-		  SERVICENOW_REQUEST_URL: ${{ secrets.SERVICENOW_REQUEST_URL }}
-		  SERVICENOW_AUTH: ${{ secrets.SERVICENOW_AUTH }}
-		  IGNORED_USER_EMAIL: ${{ secrets.IGNORED_USER_EMAIL }}
+          JIRA_URL: ${{ secrets.JIRA_URL }}
+          SERVICENOW_INCIDENT_URL: ${{ secrets.SERVICENOW_INCIDENT_URL }}
+          SERVICENOW_REQUEST_URL: ${{ secrets.SERVICENOW_REQUEST_URL }}
+          SERVICENOW_AUTH: ${{ secrets.SERVICENOW_AUTH }}
+          IGNORED_USER_EMAIL: ${{ secrets.IGNORED_USER_EMAIL }}
         run: |
           groovy sample-app/scripts/sendToServiceNow.groovy
