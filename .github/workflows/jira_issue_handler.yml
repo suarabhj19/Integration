@@ -1,0 +1,46 @@
+name: Handle Jira Issue
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_key:
+        description: 'Jira Issue Key'
+        required: true
+
+jobs:
+  handle-issue:
+    runs-on: ubuntu-latest
+    environment: automation
+
+    steps:
+      - name: Clone private repo manually
+        env:
+          PAT: ${{ secrets.PAT_READ_PRIVATE_REPO }}
+        run: |
+          git clone https://$PAT@github.com/suarabhj19/JSM-SNOW-Integration.git sample-app
+
+      - name: Set up Java (required for Groovy)
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Groovy
+        run: |
+          sudo apt update
+          sudo apt install -y groovy
+
+      - name: Create payload.json from Jira inputs
+        run: |
+          echo '{
+            "issue_key": "${{ github.event.inputs.issue_key }}"
+          }' > payload.json
+
+      - name: Run Groovy Script
+        run: groovy sample-app/scripts/handle_issue.groovy payload.json
+        env:
+          JIRA_AUTH: ${{ secrets.JIRA_AUTH }}
+          JIRA_URL: ${{ secrets.JIRA_URL }}
+          SERVICENOW_INCIDENT_URL: ${{ secrets.SERVICENOW_INCIDENT_URL }}
+          SERVICENOW_REQUEST_URL: ${{ secrets.SERVICENOW_REQUEST_URL }}
+          SERVICENOW_AUTH: ${{ secrets.SERVICENOW_AUTH }}

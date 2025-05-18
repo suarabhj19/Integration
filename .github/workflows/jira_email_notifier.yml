@@ -1,0 +1,34 @@
+name: Jira Email Notification
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_key:
+        description: 'Jira Issue Key'
+        required: true
+
+jobs:
+  send-email:
+    runs-on: ubuntu-latest
+    environment: automation
+
+    steps:
+      - name: Clone private repo manually
+        env:
+          PAT: ${{ secrets.PAT_READ_PRIVATE_REPO }}
+        run: |
+          git clone https://$PAT@github.com/suarabhj19/JSM-SNOW-Integration.git sample-app
+
+      - name: Install Groovy
+        run: |
+          sudo apt update
+          sudo apt install -y groovy
+
+      - name: Run Groovy script
+        env:
+          ISSUE_KEY: ${{ github.event.inputs.issue_key }}
+          SMTP_EMAIL: ${{ secrets.SMTP_EMAIL }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          JIRA_AUTH: ${{ secrets.JIRA_AUTH }}
+          JIRA_URL: ${{ secrets.JIRA_URL }}
+        run: groovy sample-app/scripts/EmailSender.groovy
