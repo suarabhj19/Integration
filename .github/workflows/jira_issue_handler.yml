@@ -34,7 +34,9 @@ jobs:
           EOF
 
       - name: Run Groovy Script (no payload logging)
-        run: groovy sample-app/scripts/handle_issue.groovy payload.json
+        run: |
+           cd sample-app/scripts/
+           groovy handle_issue.groovy payload.json
         env:
           JIRA_AUTH: ${{ secrets.JIRA_AUTH }}
           JIRA_URL: ${{ secrets.JIRA_URL }}
