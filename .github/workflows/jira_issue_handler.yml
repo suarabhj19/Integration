@@ -38,9 +38,9 @@ jobs:
 
       - name: Run Groovy Script
         run: groovy sample-app/scripts/handle_issue.groovy payload.json
-		env:
-      JIRA_AUTH: ${{ secrets.JIRA_AUTH }}
-      JIRA_URL: ${{ secrets.JIRA_URL }}
-      SERVICENOW_INCIDENT_URL: ${{ secrets.SERVICENOW_INCIDENT_URL }}
-      SERVICENOW_REQUEST_URL: ${{ secrets.SERVICENOW_REQUEST_URL }}
-      SERVICENOW_AUTH: ${{ secrets.SERVICENOW_AUTH }}
+        env:
+          JIRA_AUTH: ${{ secrets.JIRA_AUTH }}
+          JIRA_URL: ${{ secrets.JIRA_URL }}
+          SERVICENOW_INCIDENT_URL: ${{ secrets.SERVICENOW_INCIDENT_URL }}
+          SERVICENOW_REQUEST_URL: ${{ secrets.SERVICENOW_REQUEST_URL }}
+          SERVICENOW_AUTH: ${{ secrets.SERVICENOW_AUTH }}
