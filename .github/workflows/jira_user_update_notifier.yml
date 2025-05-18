@@ -19,14 +19,10 @@ jobs:
         run: |
           git clone https://$PAT@github.com/suarabhj19/JSM-SNOW-Integration.git sample-app
 
-      - name: Set up Java and Groovy
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Install Groovy
-        run: sudo apt-get install -y groovy
+      - name: Install Java and Groovy
+        run: |
+          sudo apt update -y
+          sudo apt install -y openjdk-17-jdk groovy
 
       - name: Run Groovy Script
         env:

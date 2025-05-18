@@ -28,10 +28,10 @@ jobs:
         run: |
           git clone https://$PAT@github.com/suarabhj19/JSM-SNOW-Integration.git sample-app
 
-      - name: Setup Groovy
-        uses: wtfjoke/setup-groovy@v1
-        with:
-          groovy-version: '4.0.15'
+      - name: Install Groovy
+        run: |
+          sudo apt update
+          sudo apt install -y groovy
 
       - name: Run Groovy script
         run: groovy sample-app/scripts/process_latest_attachments.groovy
