@@ -21,16 +21,19 @@ jobs:
 
       - name: Install Java and Groovy
         run: |
-          sudo apt update
+          sudo apt update -y
           sudo apt install -y openjdk-17-jdk groovy
 
-      - name: Create payload.json from Jira inputs
+      - name: Create payload.json from Jira inputs (silent)
+        shell: bash
         run: |
-          echo '{
+          cat <<EOF > payload.json
+          {
             "issue_key": "${{ github.event.inputs.issue_key }}"
-          }' > payload.json
+          }
+          EOF
 
-      - name: Run Groovy Script
+      - name: Run Groovy Script (no payload logging)
         run: groovy sample-app/scripts/handle_issue.groovy payload.json
         env:
           JIRA_AUTH: ${{ secrets.JIRA_AUTH }}
