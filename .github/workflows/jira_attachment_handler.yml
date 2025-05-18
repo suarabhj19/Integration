@@ -1,0 +1,45 @@
+name: Handle Jira Attachments
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_key:
+        required: true
+        type: string
+      attachments:
+        required: true
+        type: string
+      issuetype:
+        required: true
+        type: string
+      external_key:
+        required: false
+        type: string
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    environment: automation
+    
+    steps:
+      - name: Clone private repo manually
+        env:
+          PAT: ${{ secrets.PAT_READ_PRIVATE_REPO }}
+        run: |
+          git clone https://$PAT@github.com/suarabhj19/JSM-SNOW-Integration.git sample-app
+
+      - name: Setup Groovy
+        uses: wtfjoke/setup-groovy@v1
+        with:
+          groovy-version: '4.0.15'
+
+      - name: Run Groovy script
+        run: groovy sample-app/scripts/process_latest_attachments.groovy
+        env:
+          INPUT_ISSUE_KEY: ${{ github.event.inputs.issue_key }}
+          INPUT_ATTACHMENTS: ${{ github.event.inputs.attachments }}
+          INPUT_ISSUETYPE: ${{ github.event.inputs.issuetype }}
+          INPUT_EXTERNAL_KEY: ${{ github.event.inputs.external_key }}
+          SERVICENOW_INCIDENT_URL: ${{ secrets.SERVICENOW_INCIDENT_URL }}
+          SERVICENOW_REQUEST_URL: ${{ secrets.SERVICENOW_REQUEST_URL }}
+          SERVICENOW_AUTH: ${{ secrets.SERVICENOW_AUTH }}
