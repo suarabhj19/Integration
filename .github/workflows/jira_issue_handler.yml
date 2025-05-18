@@ -36,7 +36,7 @@ jobs:
       - name: Run Groovy Script (no payload logging)
         run: |
            cd sample-app/scripts/
-           groovy handle_issue.groovy payload.json
+           groovy handle_issue.groovy ../../payload.json
         env:
           JIRA_AUTH: ${{ secrets.JIRA_AUTH }}
           JIRA_URL: ${{ secrets.JIRA_URL }}
