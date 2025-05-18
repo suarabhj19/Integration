@@ -24,22 +24,26 @@ jobs:
           sudo apt update -y
           sudo apt install -y openjdk-17-jdk groovy
 
-      - name: Create payload.json from Jira inputs (silent)
-        shell: bash
-        run: |
-          cat <<EOF > payload.json
-          {
-            "issue_key": "${{ github.event.inputs.issue_key }}"
-          }
-          EOF
+      - name: Create payload.json from Jira inputs
+  shell: bash
+  run: |
+    cat <<EOF > payload.json
+{
+  "issue_key": "${{ github.event.inputs.issue_key }}"
+}
+EOF
 
-      - name: Run Groovy Script (no payload logging)
-        run: |
-           cd sample-app/scripts/
-           groovy handle_issue.groovy ../../payload.json
-        env:
-          JIRA_AUTH: ${{ secrets.JIRA_AUTH }}
-          JIRA_URL: ${{ secrets.JIRA_URL }}
-          SERVICENOW_INCIDENT_URL: ${{ secrets.SERVICENOW_INCIDENT_URL }}
-          SERVICENOW_REQUEST_URL: ${{ secrets.SERVICENOW_REQUEST_URL }}
-          SERVICENOW_AUTH: ${{ secrets.SERVICENOW_AUTH }}
+- name: Debug payload.json
+  run: |
+    echo "PWD: $(pwd)"
+    ls -l
+    cat payload.json
+
+- name: Run Groovy Script
+  run: groovy sample-app/scripts/handle_issue.groovy "$(pwd)/payload.json"
+  env:
+    JIRA_AUTH: ${{ secrets.JIRA_AUTH }}
+    JIRA_URL: ${{ secrets.JIRA_URL }}
+    SERVICENOW_INCIDENT_URL: ${{ secrets.SERVICENOW_INCIDENT_URL }}
+    SERVICENOW_REQUEST_URL: ${{ secrets.SERVICENOW_REQUEST_URL }}
+    SERVICENOW_AUTH: ${{ secrets.SERVICENOW_AUTH }}
