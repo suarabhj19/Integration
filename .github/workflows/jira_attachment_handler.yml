@@ -30,8 +30,8 @@ jobs:
 
       - name: Install Groovy
         run: |
-          sudo apt update
-          sudo apt install -y groovy
+          sudo apt-get update -y --fix-missing
+          sudo apt-get install -y groovy
 
       - name: Run Groovy script
         run: groovy sample-app/scripts/process_latest_attachments.groovy
