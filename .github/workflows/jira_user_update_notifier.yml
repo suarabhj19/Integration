@@ -29,6 +29,4 @@ jobs:
           ISSUE_DATA: ${{ github.event.inputs.issue_data }}
           JIRA_AUTH: ${{ secrets.JIRA_AUTH }}
           JIRA_URL: ${{ secrets.JIRA_URL }}
-          SMTP_EMAIL: ${{ secrets.SMTP_EMAIL }}
-          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: groovy sample-app/scripts/jira_user_update_notifier.groovy
