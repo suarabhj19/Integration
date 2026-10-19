@@ -15,7 +15,7 @@ on:
 
 jobs:
   update:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: automation
 
     steps:
@@ -23,7 +23,7 @@ jobs:
         env:
           PAT: ${{ secrets.PAT_READ_PRIVATE_REPO }}
         run: |
-          git clone https://$PAT@github.com/suarabhj19/JSM-SNOW-Integration.git sample-app
+          git clone https://x-access-token:${PAT}@github.com/suarabhj19/JSM-SNOW-Integration.git sample-app
 
       - name: Install Groovy
         run: |
