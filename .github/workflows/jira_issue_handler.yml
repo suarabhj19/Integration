@@ -16,72 +16,75 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      # Step 1: Clone private repository
+
+      # Step 1: Clone private integration repository
       - name: Clone private repo manually
         env:
           PAT: ${{ secrets.PAT_READ_PRIVATE_REPO }}
         run: |
+          set -e
+
           git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$PAT" | base64 -w0)" \
             clone https://github.com/suarabhj19/JSM-SNOW-Integration.git sample-app
 
-      # Step 2: Check and install Java/Groovy only if required
-      - name: Check and Install Java and Groovy
+      # Step 2: Verify existing Java 17
+      - name: Check Java 17
         shell: bash
         run: |
-          PACKAGES=()
+          set -e
 
-          if ! java -version 2>&1 | grep -q '"17\.'; then
-            echo "Java 17 is not available. Installing Java 17..."
-            PACKAGES+=(openjdk-17-jdk)
-          else
-            echo "Java 17 is already available."
-          fi
+          echo "Checking Java installation..."
 
-          if ! command -v groovy >/dev/null 2>&1; then
-            echo "Groovy is not available. Installing Groovy..."
-            PACKAGES+=(groovy)
-          else
-            echo "Groovy is already available."
-          fi
-
-          if [ ${#PACKAGES[@]} -gt 0 ]; then
-
-            for attempt in 1 2 3; do
-              echo "APT update attempt: $attempt"
-
-              if sudo apt-get update \
-                -o Acquire::Retries=3 \
-                -o Acquire::http::Timeout=30 \
-                -o Acquire::https::Timeout=30; then
-                break
-              fi
-
-              if [ "$attempt" -eq 3 ]; then
-                echo "APT update failed after 3 attempts"
-                exit 1
-              fi
-
-              sleep 15
-            done
-
-            sudo apt-get install -y \
-              -o Acquire::Retries=3 \
-              "${PACKAGES[@]}"
-          fi
-
-          # Select Java 17 if installed
-          if [ -f /usr/lib/jvm/java-17-openjdk-amd64/bin/java ]; then
-            sudo update-alternatives --set java \
-              /usr/lib/jvm/java-17-openjdk-amd64/bin/java
-          fi
-
-          echo "Java version:"
           java -version
 
-          echo "Groovy version:"
-          groovy --version
+          JAVA_VERSION=$(java -version 2>&1 | head -n 1)
 
-      # Step 3: Create Jira payload
+          echo "Detected: $JAVA_VERSION"
+
+          if ! java -version 2>&1 | grep -q '"17\.'; then
+            echo "ERROR: Java 17 is required."
+            exit 1
+          fi
+
+          echo "Java 17 is available."
+
+      # Step 3: Download and configure Groovy
+      - name: Install Groovy from Apache
+        shell: bash
+        run: |
+          set -e
+
+          GROOVY_VERSION="5.1.3"
+
+          DOWNLOAD_URL="https://downloads.apache.org/groovy/${GROOVY_VERSION}/apache-groovy-binary-${GROOVY_VERSION}.zip"
+
+          echo "Downloading Groovy ${GROOVY_VERSION}..."
+
+          curl -fL --retry 3 --connect-timeout 20 \
+            "$DOWNLOAD_URL" \
+            -o groovy.zip
+
+          mkdir -p "$RUNNER_TEMP/groovy-dist"
+
+          python3 -c "import zipfile; zipfile.ZipFile('groovy.zip').extractall('$RUNNER_TEMP/groovy-dist')"
+
+          GROOVY_BIN=$(find "$RUNNER_TEMP/groovy-dist" \
+            -type f -path '*/bin/groovy' -print -quit)
+
+          if [ -z "$GROOVY_BIN" ]; then
+            echo "ERROR: Groovy executable not found."
+            exit 1
+          fi
+
+          GROOVY_HOME="${GROOVY_BIN%/bin/groovy}"
+
+          echo "$GROOVY_HOME/bin" >> "$GITHUB_PATH"
+
+          echo "Groovy installation completed."
+
+          "$GROOVY_BIN" --version
+
+      # Step 4: Create Jira issue payload
       - name: Create payload.json from Jira inputs
         env:
           ISSUE_KEY: ${{ github.event.inputs.issue_key }}
@@ -91,18 +94,23 @@ jobs:
           import os
 
           with open("payload.json", "w") as f:
-              json.dump({"issue_key": os.environ["ISSUE_KEY"]}, f, indent=2)
+              json.dump(
+                  {"issue_key": os.environ["ISSUE_KEY"]},
+                  f,
+                  indent=2
+              )
           PY
 
-      # Step 4: Debug payload
+      # Step 5: Debug payload
       - name: Debug payload.json
         run: |
           echo "Working directory: $(pwd)"
           ls -l
           cat payload.json
 
-      # Step 5: Execute Groovy integration
+      # Step 6: Execute Jira to ServiceNow integration
       - name: Run Groovy Script
+        shell: bash
         run: |
           groovy sample-app/scripts/handle_issue.groovy "$(pwd)/payload.json"
         env:
