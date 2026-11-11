@@ -1,3 +1,4 @@
+
 name: Handle Jira Issue
 
 on:
@@ -6,41 +7,87 @@ on:
       issue_key:
         description: 'Jira Issue Key'
         required: true
+        type: string
 
 jobs:
   handle-issue:
     runs-on: ubuntu-24.04
     environment: automation
+    timeout-minutes: 15
 
     steps:
+      # Step 1: Clone private integration repository
       - name: Clone private repo manually
         env:
           PAT: ${{ secrets.PAT_READ_PRIVATE_REPO }}
         run: |
-          git clone https://x-access-token:${PAT}@github.com/suarabhj19/JSM-SNOW-Integration.git sample-app
+          git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$PAT" | base64 -w0)" \
+            clone https://github.com/suarabhj19/JSM-SNOW-Integration.git sample-app
 
-      - name: Install Java and Groovy
+      # Step 2: Configure Java 17
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Step 3: Install Groovy with retries
+      - name: Install Groovy
         run: |
-          sudo apt-get update -y --fix-missing
-          sudo apt-get install -y openjdk-17-jdk groovy
+          set -e
 
+          for attempt in 1 2 3; do
+            echo "APT update attempt: $attempt"
+
+            if sudo apt-get update \
+              -o Acquire::Retries=3 \
+              -o Acquire::http::Timeout=30 \
+              -o Acquire::https::Timeout=30; then
+              break
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              echo "APT update failed after 3 attempts"
+              exit 1
+            fi
+
+            sleep 15
+          done
+
+          sudo apt-get install -y \
+            -o Acquire::Retries=3 \
+            groovy
+
+          echo "Java version:"
+          java -version
+
+          echo "Groovy version:"
+          groovy --version
+
+      # Step 4: Create Jira payload
       - name: Create payload.json from Jira inputs
-        shell: bash
+        env:
+          ISSUE_KEY: ${{ github.event.inputs.issue_key }}
         run: |
-          cat <<EOF > payload.json
-          {
-            "issue_key": "${{ github.event.inputs.issue_key }}"
-          }
-          EOF
+          python3 - <<'PY'
+          import json
+          import os
 
+          with open("payload.json", "w") as f:
+              json.dump({"issue_key": os.environ["ISSUE_KEY"]}, f, indent=2)
+          PY
+
+      # Step 5: Debug payload
       - name: Debug payload.json
         run: |
-          echo "PWD: $(pwd)"
+          echo "Working directory: $(pwd)"
           ls -l
           cat payload.json
 
+      # Step 6: Execute Jira to ServiceNow integration
       - name: Run Groovy Script
-        run: groovy sample-app/scripts/handle_issue.groovy "$(pwd)/payload.json"
+        run: |
+          groovy sample-app/scripts/handle_issue.groovy "$(pwd)/payload.json"
         env:
           JIRA_AUTH: ${{ secrets.JIRA_AUTH }}
           JIRA_URL: ${{ secrets.JIRA_URL }}
