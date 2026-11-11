@@ -19,15 +19,21 @@ jobs:
 
       # Step 1: Clone private integration repository
       - name: Clone private repo manually
+        shell: bash
         env:
           PAT: ${{ secrets.PAT_READ_PRIVATE_REPO }}
         run: |
           set -e
 
+          if [ -z "$PAT" ]; then
+            echo "ERROR: PAT_READ_PRIVATE_REPO secret is missing."
+            exit 1
+          fi
+
           git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$PAT" | base64 -w0)" \
             clone https://github.com/suarabhj19/JSM-SNOW-Integration.git sample-app
 
-      # Step 2: Verify existing Java 17
+      # Step 2: Verify Java 17
       - name: Check Java 17
         shell: bash
         run: |
@@ -37,10 +43,6 @@ jobs:
 
           java -version
 
-          JAVA_VERSION=$(java -version 2>&1 | head -n 1)
-
-          echo "Detected: $JAVA_VERSION"
-
           if ! java -version 2>&1 | grep -q '"17\.'; then
             echo "ERROR: Java 17 is required."
             exit 1
@@ -48,7 +50,7 @@ jobs:
 
           echo "Java 17 is available."
 
-      # Step 3: Download and configure Groovy
+      # Step 3: Download and install Groovy
       - name: Install Groovy from Apache
         shell: bash
         run: |
@@ -56,13 +58,17 @@ jobs:
 
           GROOVY_VERSION="5.1.3"
 
-          DOWNLOAD_URL="https://downloads.apache.org/groovy/${GROOVY_VERSION}/apache-groovy-binary-${GROOVY_VERSION}.zip"
+          DOWNLOAD_URL="https://downloads.apache.org/groovy/${GROOVY_VERSION}/distribution/apache-groovy-binary-${GROOVY_VERSION}.zip"
 
           echo "Downloading Groovy ${GROOVY_VERSION}..."
 
-          curl -fL --retry 3 --connect-timeout 20 \
+          curl --fail --location \
+            --retry 3 \
+            --connect-timeout 20 \
             "$DOWNLOAD_URL" \
-            -o groovy.zip
+            --output groovy.zip
+
+          echo "Extracting Groovy..."
 
           mkdir -p "$RUNNER_TEMP/groovy-dist"
 
@@ -86,33 +92,55 @@ jobs:
 
       # Step 4: Create Jira issue payload
       - name: Create payload.json from Jira inputs
+        shell: bash
         env:
           ISSUE_KEY: ${{ github.event.inputs.issue_key }}
         run: |
+          set -e
+
           python3 - <<'PY'
           import json
           import os
 
+          issue_key = os.environ["ISSUE_KEY"].strip()
+
+          if not issue_key:
+              raise SystemExit("ERROR: Jira issue key is empty.")
+
           with open("payload.json", "w") as f:
               json.dump(
-                  {"issue_key": os.environ["ISSUE_KEY"]},
+                  {"issue_key": issue_key},
                   f,
                   indent=2
               )
+
+          print("Jira issue payload created successfully.")
           PY
 
-      # Step 5: Debug payload
-      - name: Debug payload.json
+      # Step 5: Verify payload and integration files
+      - name: Verify integration files
+        shell: bash
         run: |
-          echo "Working directory: $(pwd)"
-          ls -l
-          cat payload.json
+          set -e
+
+          echo "Checking integration files..."
+
+          test -f payload.json
+          test -f sample-app/scripts/handle_issue.groovy
+
+          echo "Payload and Groovy script are available."
 
       # Step 6: Execute Jira to ServiceNow integration
       - name: Run Groovy Script
         shell: bash
         run: |
+          set -e
+
+          echo "Starting Jira to ServiceNow integration..."
+
           groovy sample-app/scripts/handle_issue.groovy "$(pwd)/payload.json"
+
+          echo "Jira to ServiceNow integration completed."
         env:
           JIRA_AUTH: ${{ secrets.JIRA_AUTH }}
           JIRA_URL: ${{ secrets.JIRA_URL }}
