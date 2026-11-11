@@ -5,17 +5,20 @@ on:
   workflow_dispatch:
     inputs:
       issue_key:
+        description: 'Jira Issue Key'
         required: true
         type: string
       urgency:
+        description: 'Urgency'
         required: true
         type: string
       impact:
+        description: 'Impact'
         required: true
         type: string
 
 jobs:
-  update:
+  update-priority-severity:
     runs-on: ubuntu-24.04
     environment: automation
 
@@ -45,9 +48,9 @@ jobs:
         run: |
           set -e
 
-          GROOVY_VERSION="5.1.3"
+          GROOVY_VERSION="3.0.9"
 
-          DOWNLOAD_URL="https://downloads.apache.org/groovy/${GROOVY_VERSION}/distribution/apache-groovy-binary-${GROOVY_VERSION}.zip"
+          DOWNLOAD_URL="https://archive.apache.org/dist/groovy/${GROOVY_VERSION}/distribution/apache-groovy-binary-${GROOVY_VERSION}.zip"
 
           echo "Downloading Groovy ${GROOVY_VERSION}..."
 
@@ -84,6 +87,7 @@ jobs:
         env:
           JIRA_AUTH: ${{ secrets.JIRA_AUTH }}
           JIRA_URL: ${{ secrets.JIRA_URL }}
+        shell: bash
         run: |
           groovy sample-app/scripts/update_priority_severity.groovy \
             "${{ github.event.inputs.issue_key }}" \
